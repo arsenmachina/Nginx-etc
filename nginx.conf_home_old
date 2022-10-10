@@ -1,0 +1,100 @@
+#user www www;
+worker_processes 2;
+
+events {
+        worker_connections 1024;
+}       
+
+http {
+        charset utf-8;
+        include mime.types;
+        client_max_body_size 3300m;
+        gzip on;
+        gzip_min_length 20;
+        gzip_comp_level 4;
+        gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript application/javascript;
+        fastcgi_cache_path /tmp/nginx_cache levels=1:2 keys_zone=fastcgicache:10m inactive=70m max_size=512m;
+
+
+
+
+
+
+
+########__Web__#############
+
+
+server { listen 80; server_name macrasafack.ru; return 301 https://macrasafack.ru$request_uri;}
+
+server {
+    server_name  macrasafack.ru;
+    listen 443 ssl http2;
+
+    ssl_certificate /etc/nginx/ssl/fullchain1.pem; 
+    ssl_certificate_key /etc/nginx/ssl/privkey1.pem;
+
+         root /usr/share/nginx/html;
+    }
+
+#########__Cloud__############
+
+server { listen 80; server_name cloud.macrasafack.ru; return 301 https://cloud.macrasafack.ru$request_uri;}
+
+server { 
+
+    server_name cloud.macrasafack.ru;
+    listen 443 ssl http2;
+
+    ssl_certificate /etc/nginx/ssl/fullchain1.pem; 
+    ssl_certificate_key /etc/nginx/ssl/privkey1.pem;
+    fastcgi_cache_key "$scheme$request_method$host$request_uri$cookie_nc_token";
+    add_header x-fastcgi-cache $upstream_cache_status;
+
+     location ~* \.(gif|txt)$ {
+
+      access_log off;
+      expires 30d;
+      add_header Pragma public;
+      add_header Cache-Control public;
+      add_header Vary Accept-Ebcoding;
+        }
+
+
+
+
+
+    
+    location / {
+    proxy_pass https://172.19.0.4/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Real-IP $remote_addr;
+    fastcgi_cache fastcgicache;
+    fastcgi_cache_valid 200 60m;
+     }
+   }
+
+#######__Gitlub__########
+
+server { 
+
+    server_name gitlub-ce.macrasafack.ru;
+    listen 443 ssl http2;
+
+    ssl_certificate /etc/nginx/ssl/fullchain1.pem; 
+    ssl_certificate_key /etc/nginx/ssl/privkey1.pem;
+    
+    location / {
+    proxy_pass https://172.20.0.2/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Real-IP $remote_addr;
+     }
+   }
+
+
+
+
+
+}
+
